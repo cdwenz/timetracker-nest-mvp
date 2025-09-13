@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  name         String
+  country      String?
+  email        String      @unique
+  passwordHash String
+  role         Role        @default(USER)
+  createdAt    DateTime    @default(now())
+  timeEntries  TimeEntry[]
+
+  passwordResetTokens PasswordResetToken[]
+}
+
+model TimeEntry {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Nuevo set de campos
+  note             String?
+  recipient        String?
+  personName       String   @map("supportedPerson")
+  supportedCountry String
+  workingLanguage  String
+  startDate        DateTime
+  endDate          DateTime
+  startTimeOfDay   String? // "HH:mm"
+  endTimeOfDay     String? // "HH:mm"
+  tasks            String[] @default([]) // ARRAY de strings en Postgres
+  taskDescription  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, startDate])
+  @@index([workingLanguage])
+  @@index([supportedCountry])
+}
+
+enum Role {
+  USER
+  ADMIN
+  FIELD_MANAGER
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
