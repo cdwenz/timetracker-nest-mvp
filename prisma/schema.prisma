@@ -7,17 +7,93 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String      @id @default(uuid())
-  name         String
-  country      String?
-  email        String      @unique
-  passwordHash String
-  role         Role        @default(USER)
-  createdAt    DateTime    @default(now())
-  timeEntries  TimeEntry[]
+model Organization {
+  id   String @id @default(uuid())
+  name String
 
+  users       User[]
+  regions     Region[]
+  teams       Team[]
+  timeEntries TimeEntry[] @relation("OrgTimeEntries") // <- nombre explícito
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Region {
+  id             String       @id @default(uuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  managerId String?
+  manager   User?   @relation("RegionManager", fields: [managerId], references: [id]) // <- nombre agregado
+
+  teams       Team[]
+  timeEntries TimeEntry[] @relation("RegionTimeEntries")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Team {
+  id   String @id @default(uuid())
+  name String
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  regionId String?
+  region   Region? @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  managerId String
+  manager   User   @relation("TeamManager", fields: [managerId], references: [id])
+
+  members     TeamMember[]
+  timeEntries TimeEntry[]  @relation("TeamTimeEntries") // <- nombre explícito
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TeamMember {
+  id String @id @default(uuid())
+
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // opcional: rol en el equipo, si difiere del global
+  roleInTeam Role?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, userId]) // evita duplicados
+}
+
+model User {
+  id           String  @id @default(uuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  country      String?
+  role         Role
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  managesRegions Region[] @relation("RegionManager") // <- mismo nombre
+
+  managesTeams        Team[]               @relation("TeamManager")
+  teamMemberships     TeamMember[]
+  timeEntries         TimeEntry[]
   passwordResetTokens PasswordResetToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // Prisma lo mantiene, pero para backfill hacemos SQL
 }
 
 model TimeEntry {
@@ -38,6 +114,15 @@ model TimeEntry {
   tasks            String[] @default([]) // ARRAY de strings en Postgres
   taskDescription  String?
 
+  organizationId String
+  organization   Organization @relation("OrgTimeEntries", fields: [organizationId], references: [id])
+
+  regionId String?
+  region   Region? @relation("RegionTimeEntries", fields: [regionId], references: [id])
+
+  teamId String?
+  team   Team?   @relation("TeamTimeEntries", fields: [teamId], references: [id])
+
   createdAt DateTime @default(now())
 
   @@index([userId, startDate])
@@ -46,9 +131,12 @@ model TimeEntry {
 }
 
 enum Role {
-  USER
+  SUPER
   ADMIN
+  REGIONAL_MANAGER
   FIELD_MANAGER
+  FIELD_TECH
+  TRANSCRIBER
 }
 
 model PasswordResetToken {

@@ -1,37 +1,44 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
-import { ListTimeEntriesQueryDto } from './dto/list-time-entries.dto';
+import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateTimeEntryDto } from "./dto/create-time-entry.dto";
+import { ListTimeEntriesQueryDto } from "./dto/list-time-entries.dto";
 
 @Injectable()
 export class TimeTrackerService {
   constructor(private prisma: PrismaService) {}
 
-  create(userId: string, dto: CreateTimeEntryDto) {
+  async create(userId: string, orgId: string, dto: CreateTimeEntryDto) {
     return this.prisma.timeEntry.create({
       data: {
-        userId,
-        note: dto.note ?? null,
-        recipient: dto.recipient ?? null,
+        // Relaciones obligatorias
+        user: { connect: { id: userId } },
+        organization: { connect: { id: orgId } },
+
+        // Escalares
+        note: dto.note,
+        recipient: dto.recipient,
         personName: dto.personName,
         supportedCountry: dto.supportedCountry,
         workingLanguage: dto.workingLanguage,
-        startDate: new Date(dto.startDate),
+        startDate: new Date(dto.startDate), // dto viene string ISO → Date
         endDate: new Date(dto.endDate),
-        startTimeOfDay: dto.startTimeOfDay ?? null,
-        endTimeOfDay: dto.endTimeOfDay ?? null,
-        tasks: dto.tasks && dto.tasks.length ? dto.tasks : undefined, // default []
-        taskDescription: dto.taskDescription ?? null,
+        startTimeOfDay: dto.startTimeOfDay,
+        endTimeOfDay: dto.endTimeOfDay,
+        taskDescription: dto.taskDescription,
+        tasks: dto.tasks ?? [], // String[]
       },
     });
   }
 
-  private buildWhere(user: { userId: string; role: string }, q: ListTimeEntriesQueryDto) {
+  private buildWhere(
+    user: { userId: string; role: string },
+    q: ListTimeEntriesQueryDto
+  ) {
     const where: Prisma.TimeEntryWhereInput = {};
 
     // Visibilidad por rol
-    if (user.role === 'ADMIN') {
+    if (user.role === "ADMIN") {
       if (q.createdBy) where.userId = q.createdBy;
     } else {
       // USER y FIELD_MANAGER solo ven lo propio
@@ -41,21 +48,29 @@ export class TimeTrackerService {
     // Rango por startDate
     if (q.fromDate || q.toDate) {
       where.startDate = {};
-      if (q.fromDate) (where.startDate as Prisma.DateTimeFilter).gte = new Date(q.fromDate);
-      if (q.toDate)   (where.startDate as Prisma.DateTimeFilter).lte = new Date(q.toDate);
+      if (q.fromDate)
+        (where.startDate as Prisma.DateTimeFilter).gte = new Date(q.fromDate);
+      if (q.toDate)
+        (where.startDate as Prisma.DateTimeFilter).lte = new Date(q.toDate);
     }
 
     if (q.workingLanguage) {
-      where.workingLanguage = { contains: q.workingLanguage, mode: 'insensitive' };
+      where.workingLanguage = {
+        contains: q.workingLanguage,
+        mode: "insensitive",
+      };
     }
     if (q.supportedCountry) {
-      where.supportedCountry = { contains: q.supportedCountry, mode: 'insensitive' };
+      where.supportedCountry = {
+        contains: q.supportedCountry,
+        mode: "insensitive",
+      };
     }
     if (q.recipient) {
-      where.recipient = { contains: q.recipient, mode: 'insensitive' };
+      where.recipient = { contains: q.recipient, mode: "insensitive" };
     }
     if (q.personName) {
-      where.personName = { contains: q.personName, mode: 'insensitive' };
+      where.personName = { contains: q.personName, mode: "insensitive" };
     }
 
     if (q.tasks?.length) {
@@ -66,17 +81,20 @@ export class TimeTrackerService {
 
     if (q.q) {
       where.OR = [
-        { note: { contains: q.q, mode: 'insensitive' } },
-        { recipient: { contains: q.q, mode: 'insensitive' } },
-        { personName: { contains: q.q, mode: 'insensitive' } },
-        { taskDescription: { contains: q.q, mode: 'insensitive' } },
+        { note: { contains: q.q, mode: "insensitive" } },
+        { recipient: { contains: q.q, mode: "insensitive" } },
+        { personName: { contains: q.q, mode: "insensitive" } },
+        { taskDescription: { contains: q.q, mode: "insensitive" } },
       ];
     }
 
     return where;
   }
 
-  async listWithMeta(user: { userId: string; role: string }, q: ListTimeEntriesQueryDto) {
+  async listWithMeta(
+    user: { userId: string; role: string },
+    q: ListTimeEntriesQueryDto
+  ) {
     const page = q.page ?? 1;
     const pageSize = q.pageSize ?? 50;
     const skip = (page - 1) * pageSize;
@@ -88,7 +106,7 @@ export class TimeTrackerService {
       this.prisma.timeEntry.count({ where }),
       this.prisma.timeEntry.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
         take,
       }),
@@ -102,11 +120,14 @@ export class TimeTrackerService {
   }
 
   // Opción simple sin meta si querés
-  async listFlat(user: { userId: string; role: string }, q: ListTimeEntriesQueryDto) {
+  async listFlat(
+    user: { userId: string; role: string },
+    q: ListTimeEntriesQueryDto
+  ) {
     const where = this.buildWhere(user, q);
     return this.prisma.timeEntry.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 }
