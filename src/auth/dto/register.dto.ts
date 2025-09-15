@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, MinLength, IsOptional, IsIn } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  MinLength,
+  IsOptional,
+  IsIn,
+} from "class-validator";
 
 export class RegisterDto {
   @IsNotEmpty()
@@ -14,6 +20,19 @@ export class RegisterDto {
   password: string;
 
   @IsOptional()
-  @IsIn(['USER', 'ADMIN', 'FIELD_MANAGER'])
-  role?: 'USER' | 'ADMIN' | 'FIELD_MANAGER';
+  @IsIn([
+    "SUPER",
+    "ADMIN",
+    "REGIONAL_MANAGER",
+    "FIELD_MANAGER",
+    "FIELD_TECH",
+    "TRANSCRIBER",
+  ])
+  role?:
+    | "SUPER"
+    | "ADMIN"
+    | "REGIONAL_MANAGER"
+    | "FIELD_MANAGER"
+    | "FIELD_TECH"
+    | "TRANSCRIBER";
 }
