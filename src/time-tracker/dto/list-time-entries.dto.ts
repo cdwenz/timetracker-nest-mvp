@@ -1,57 +1,43 @@
-import { Transform } from 'class-transformer';
-import { IsArray, IsDateString, IsInt, IsOptional, IsString, Min } from 'class-validator';
+// src/time-tracker/dto/list-time-entries.dto.ts
+import { IsOptional, IsDateString, IsInt, Min, Max, IsString, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class ListTimeEntriesQueryDto {
-  @IsOptional() @IsString()
-  createdBy?: string;
+export class ListTimeEntriesDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0)
+  skip?: number;
 
-  @Transform(({ obj }) => obj.fromDate ?? obj.from_date)
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100)
+  take?: number;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1)
+  page?: number;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100)
+  pageSize?: number;
+
+  // Fechas (ambos nombres)
   @IsOptional() @IsDateString()
   fromDate?: string;
 
-  @Transform(({ obj }) => obj.toDate ?? obj.to_date)
   @IsOptional() @IsDateString()
   toDate?: string;
 
-  @Transform(({ obj }) => obj.workingLanguage ?? obj.working_language)
-  @IsOptional() @IsString()
-  workingLanguage?: string;
+  @IsOptional() @IsDateString()
+  startDate?: string;
 
-  @Transform(({ obj }) => obj.supportedCountry ?? obj.supported_country)
+  @IsOptional() @IsDateString()
+  endDate?: string;
+
+  // Filtros extra
+  @IsOptional() @IsUUID()
+  userId?: string;
+
+  @IsOptional() @IsString()
+  search?: string;
+
   @IsOptional() @IsString()
   supportedCountry?: string;
 
   @IsOptional() @IsString()
-  recipient?: string;
-
-  @IsOptional() @IsString()
-  personName?: string;
-
-  @IsOptional() @IsString()
-  task?: string;
-
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) return value.map(String).map((s) => s.trim()).filter(Boolean);
-    if (typeof value === 'string') return value.split(',').map((s) => s.trim()).filter(Boolean);
-    return undefined;
-  })
-  @IsOptional() @IsArray()
-  @IsString({ each: true })
-  tasks?: string[];
-
-  @IsOptional() @IsString()
-  q?: string;
-
-  @Transform(({ value }) => (value !== undefined ? parseInt(value, 10) : 1))
-  @IsOptional() @IsInt() @Min(1)
-  page?: number;
-
-  @Transform(({ value }) => (value !== undefined ? parseInt(value, 10) : 50))
-  @IsOptional() @IsInt() @Min(1)
-  pageSize?: number;
-
-  // Si querés que solo devuelva array plano (sin meta), poné returnMeta=false
-  @Transform(({ value }) => (value === 'false' ? false : true))
-  @IsOptional()
-  returnMeta?: boolean;
+  workingLanguage?: string;
 }
