@@ -85,7 +85,7 @@ export class AuthService {
     const payload = this.buildJwtPayload(user);
 
     const access_token = await this.jwt.signAsync(payload, {
-      expiresIn: this.config.get<string>("JWT_EXPIRES") ?? "15m",
+      expiresIn: this.config.get<string>("JWT_EXPIRES") ?? "24h",
     });
     const refreshToken = await this.jwt.signAsync(
       { sub: user.id },
