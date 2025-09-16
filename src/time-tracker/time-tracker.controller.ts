@@ -43,9 +43,15 @@ export class TimeTrackerController {
 
   @Get()
   async list(@Req() req: any, @Query() query: ListTimeEntriesQueryDto) {
+    const user = {
+      userId: req.user?.userId ?? req.user?.sub,
+      role: req.user?.role,
+      organizationId: req.user?.organizationId
+    };
+    
     if (query.returnMeta === false) {
-      return this.service.listFlat(req.user, query);
+      return this.service.listFlat(user, query);
     }
-    return this.service.listWithMeta(req.user, query);
+    return this.service.listWithMeta(user, query);
   }
 }

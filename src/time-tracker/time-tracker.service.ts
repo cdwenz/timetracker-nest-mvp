@@ -31,18 +31,61 @@ export class TimeTrackerService {
     });
   }
 
-  private buildWhere(
-    user: { userId: string; role: string },
+  private async buildWhere(
+    user: { userId: string; role: string; organizationId?: string },
     q: ListTimeEntriesQueryDto
   ) {
     const where: Prisma.TimeEntryWhereInput = {};
 
-    // Visibilidad por rol
+    // Lógica de visibilidad corregida por rol
     if (user.role === "ADMIN") {
+      // ADMIN puede ver todo o filtrar por usuario específico
       if (q.createdBy) where.userId = q.createdBy;
+    } else if (user.role === "FIELD_MANAGER") {
+      // FIELD_MANAGER puede ver registros de su equipo
+      if (q.myTeam === true) {
+        // Opción 1: Mostrar registros de equipos donde es miembro
+        const userTeams = await this.prisma.teamMember.findMany({
+          where: { userId: user.userId },
+          select: { teamId: true }
+        });
+        
+        const teamIds = userTeams.map(tm => tm.teamId);
+        
+        if (teamIds.length > 0) {
+          where.OR = [
+            { userId: user.userId }, // Mis propios registros
+            { teamId: { in: teamIds } }, // Registros de mis equipos
+          ];
+        } else {
+          // No pertenezco a ningún equipo, solo mis registros
+          where.userId = user.userId;
+        }
+      } else {
+        // Solo mis registros personales
+        where.userId = user.userId;
+      }
     } else {
-      // USER y FIELD_MANAGER solo ven lo propio
+      // USER solo ve sus propios registros
       where.userId = user.userId;
+    }
+
+    // Filtro por equipo específico
+    if (q.teamId) {
+      // Verificar que el usuario tenga acceso a este equipo
+      if (user.role === "ADMIN") {
+        where.teamId = q.teamId;
+      } else {
+        const isMember = await this.prisma.teamMember.findFirst({
+          where: { userId: user.userId, teamId: q.teamId }
+        });
+        
+        if (isMember) {
+          where.teamId = q.teamId;
+        } else {
+          throw new Error('No tienes acceso a este equipo');
+        }
+      }
     }
 
     // Rango por startDate
@@ -92,7 +135,7 @@ export class TimeTrackerService {
   }
 
   async listWithMeta(
-    user: { userId: string; role: string },
+    user: { userId: string; role: string; organizationId?: string },
     q: ListTimeEntriesQueryDto
   ) {
     const page = q.page ?? 1;
@@ -100,7 +143,7 @@ export class TimeTrackerService {
     const skip = (page - 1) * pageSize;
     const take = pageSize;
 
-    const where = this.buildWhere(user, q);
+    const where = await this.buildWhere(user, q);
 
     const [total, data] = await Promise.all([
       this.prisma.timeEntry.count({ where }),
@@ -121,10 +164,10 @@ export class TimeTrackerService {
 
   // Opción simple sin meta si querés
   async listFlat(
-    user: { userId: string; role: string },
+    user: { userId: string; role: string; organizationId?: string },
     q: ListTimeEntriesQueryDto
   ) {
-    const where = this.buildWhere(user, q);
+    const where = await this.buildWhere(user, q);
     return this.prisma.timeEntry.findMany({
       where,
       orderBy: { createdAt: "desc" },

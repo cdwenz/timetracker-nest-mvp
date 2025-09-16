@@ -5,6 +5,14 @@ export class ListTimeEntriesQueryDto {
   @IsOptional() @IsString()
   createdBy?: string;
 
+  // Nuevos filtros de equipo
+  @Transform(({ value }) => value === 'true')
+  @IsOptional()
+  myTeam?: boolean; // Si es true, mostrar registros de mis equipos
+
+  @IsOptional() @IsString()
+  teamId?: string; // Filtrar por equipo específico
+
   @Transform(({ obj }) => obj.fromDate ?? obj.from_date)
   @IsOptional() @IsDateString()
   fromDate?: string;
