@@ -10,7 +10,7 @@ async function bootstrap() {
 
   const config = app.get(ConfigService);
   const port = parseInt(config.get<string>('PORT') ?? '8000', 10);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 API ready on http://localhost:${port}/api`);
 }
 bootstrap();

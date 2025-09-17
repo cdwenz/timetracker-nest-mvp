@@ -54,6 +54,20 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    
+    // 🆕 Obtener o crear organización por defecto
+    let organization = await this.prisma.organization.findFirst({
+      where: { name: "Default Organization" }
+    });
+    
+    if (!organization) {
+      console.log('🏢 Creando organización por defecto...');
+      organization = await this.prisma.organization.create({
+        data: { name: "Default Organization" }
+      });
+      console.log('✅ Organización creada:', organization.id);
+    }
+    
     const user = await this.prisma.user.create({
       data: {
         name: dto.name,
@@ -61,6 +75,7 @@ export class AuthService {
         email: dto.email,
         passwordHash,
         role: (dto.role as any) ?? "FIELD_TECH",
+        organizationId: organization.id, // 🆕 Asignar organización automáticamente
       },
       select: {
         id: true,
@@ -68,9 +83,17 @@ export class AuthService {
         email: true,
         country: true,
         role: true,
+        organizationId: true, // 🆕 Incluir en la respuesta
         createdAt: true,
       },
     });
+    
+    console.log('✅ Usuario registrado con organización:', {
+      userId: user.id,
+      email: user.email,
+      organizationId: user.organizationId
+    });
+    
     return { message: 'Usuario registrado', user };
   }
 
