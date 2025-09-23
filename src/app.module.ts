@@ -26,7 +26,7 @@ import { TimeTrackerModule } from './time-tracker/time-tracker.module';
     JwtModule.register({
       // secret solo para fallback local; en prod levantalo de env (JWT_SECRET)
       secret: process.env.JWT_SECRET || 'dev_secret_change_me',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES || '15m' },
+      signOptions: { expiresIn: process.env.JWT_EXPIRES || '1d' },
       global: true,
     }),
 

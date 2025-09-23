@@ -204,6 +204,7 @@ export class TimeTrackerService {
     q: ListTimeEntriesQueryDto
   ) {
     const where = await this.buildWhere(user, q);
+
     return this.prisma.timeEntry.findMany({
       where,
       orderBy: { createdAt: "desc" },
