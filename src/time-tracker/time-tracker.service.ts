@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateTimeEntryDto } from "./dto/create-time-entry.dto";
-import { UpdateTimeEntryDto } from "./dto/update-time-entry.dto";
+import { ListTimeEntriesDto } from "./dto/list-time-entries.dto";
 
 type ListArgs = {
   role: string;
@@ -45,28 +45,28 @@ export class TimeTrackerService {
     });
   }
 
-//<<<<<<< development
+  //<<<<<<< development
   private async buildWhere(
     user: { userId: string; role: string; organizationId?: string },
-    q: ListTimeEntriesQueryDto
+    q: ListTimeEntriesDto
   ) {
     const where: Prisma.TimeEntryWhereInput = {};
 
     // Lógica de visibilidad corregida por rol
     if (user.role === "ADMIN") {
       // ADMIN puede ver todo o filtrar por usuario específico
-      if (q.createdBy) where.userId = q.createdBy;
+      if (q.createdById) where.userId = q.createdById;
     } else if (user.role === "FIELD_MANAGER") {
       // FIELD_MANAGER puede ver registros de su equipo
       if (q.myTeam === true) {
         // Opción 1: Mostrar registros de equipos donde es miembro
         const userTeams = await this.prisma.teamMember.findMany({
           where: { userId: user.userId },
-          select: { teamId: true }
+          select: { teamId: true },
         });
-        
-        const teamIds = userTeams.map(tm => tm.teamId);
-        
+
+        const teamIds = userTeams.map((tm) => tm.teamId);
+
         if (teamIds.length > 0) {
           where.OR = [
             { userId: user.userId }, // Mis propios registros
@@ -92,13 +92,13 @@ export class TimeTrackerService {
         where.teamId = q.teamId;
       } else {
         const isMember = await this.prisma.teamMember.findFirst({
-          where: { userId: user.userId, teamId: q.teamId }
+          where: { userId: user.userId, teamId: q.teamId },
         });
-        
+
         if (isMember) {
           where.teamId = q.teamId;
         } else {
-          throw new Error('No tienes acceso a este equipo');
+          throw new Error("No tienes acceso a este equipo");
         }
       }
     }
@@ -110,59 +110,61 @@ export class TimeTrackerService {
         (where.startDate as Prisma.DateTimeFilter).gte = new Date(q.fromDate);
       if (q.toDate)
         (where.startDate as Prisma.DateTimeFilter).lte = new Date(q.toDate);
-//=======
-  /////
- //async list(args: ListArgs) {
- //   const {
- //     role, orgId, currentUserId, skip, take,
- //     dateFrom, dateTo, userId, search, supportedCountry, workingLanguage
- //   } = args;
-//
- //   // Construimos filtros en AND explícito
- //   const AND: any[] = [];
-//
- //   // Alcance por rol
-  //  if (role === 'SUPER' || role === 'ADMIN') {
-  //    if (orgId) AND.push({ organizationId: orgId });
- //     if (userId) AND.push({ userId });
-//    } else {
-//      AND.push({ userId: currentUserId });
-//      if (orgId) AND.push({ organizationId: orgId });
-//    }
-//
-//    // Rango de fechas sobre startDate
-//    if (dateFrom || dateTo) {
-//      const dateCond: any = {};
-//      if (dateFrom) dateCond.gte = dateFrom;
-//      if (dateTo)   dateCond.lte = dateTo; // ya es fin de día
-//      AND.push({ startDate: dateCond });
-//>>>>>>> master
+      //======
+      //async list(args: ListArgs) {
+      //   const {
+      //     role, orgId, currentUserId, skip, take,
+      //     dateFrom, dateTo, userId, search, supportedCountry, workingLanguage
+      //   } = args;
+      //
+      //   // Construimos filtros en AND explícito
+      //   const AND: any[] = [];
+      //
+      //   // Alcance por rol
+      //  if (role === 'SUPER' || role === 'ADMIN') {
+      //    if (orgId) AND.push({ organizationId: orgId });
+      //     if (userId) AND.push({ userId });
+      //    } else {
+      //      AND.push({ userId: currentUserId });
+      //      if (orgId) AND.push({ organizationId: orgId });
+      //    }
+      //
+      //    // Rango de fechas sobre startDate
+      //    if (dateFrom || dateTo) {
+      //      const dateCond: any = {};
+      //      if (dateFrom) dateCond.gte = dateFrom;
+      //      if (dateTo)   dateCond.lte = dateTo; // ya es fin de día
+      //      AND.push({ startDate: dateCond });
+      //>>>>>>> master
     }
 
     // Filtros simples por campo
-    if (supportedCountry) AND.push({ supportedCountry });
-    if (workingLanguage) AND.push({ workingLanguage });
+
+    
+    const AND: any[] = [];
+    if (q.supportedCountry) AND.push({ supportedCountry: q.supportedCountry });
+    if (q.workingLanguage) AND.push({ workingLanguage: q.workingLanguage });
 
     // Búsqueda (OR) combinada con AND
-    const where: any = AND.length ? { AND } : {};
-    if (search) {
-      where.AND = where.AND ?? [];
-      where.AND.push({
+    where.AND = AND.length ? { AND } : {};
+    if (q.search) {
+      AND.push({
         OR: [
-          { note: { contains: search, mode: 'insensitive' } },
-          { recipient: { contains: search, mode: 'insensitive' } },
-          { personName: { contains: search, mode: 'insensitive' } },
+          { note: { contains: q.search, mode: "insensitive" } },
+          { recipient: { contains: q.search, mode: "insensitive" } },
+          { personName: { contains: q.search, mode: "insensitive" } },
         ],
       });
+      where.AND = where.AND ?? [];
     }
 
-//<<<<<<< development
+    //<<<<<<< development
     return where;
   }
 
   async listWithMeta(
     user: { userId: string; role: string; organizationId?: string },
-    q: ListTimeEntriesQueryDto
+    q: ListTimeEntriesDto
   ) {
     const page = q.page ?? 1;
     const pageSize = q.pageSize ?? 50;
@@ -171,55 +173,55 @@ export class TimeTrackerService {
 
     const where = await this.buildWhere(user, q);
 
-    const [total, data] = await Promise.all([
+    const [count, items] = await Promise.all([
       this.prisma.timeEntry.count({ where }),
-//=======
-   // const [items, count] = await this.prisma.$transaction([
-//>>>>>>> master
+      //=======
+      // const [items, count] = await this.prisma.$transaction([
+      //>>>>>>> master
       this.prisma.timeEntry.findMany({
         where,
         skip,
         take,
-        orderBy: { startDate: 'desc' },
+        orderBy: { startDate: "desc" },
       }),
       this.prisma.timeEntry.count({ where }),
     ]);
 
     return {
-      message: 'OK',
+      message: "OK",
       count,
       page: Math.floor(skip / take) + 1,
       pageSize: take,
       items,
     };
   }
-    async findOne(id: string) {
+  async findOne(id: string) {
     return this.prisma.timeEntry.findUnique({ where: { id } });
   }
 
-//<<<<<<< development
+  //<<<<<<< development
   // Opción simple sin meta si querés
   async listFlat(
     user: { userId: string; role: string; organizationId?: string },
-    q: ListTimeEntriesQueryDto
+    q: ListTimeEntriesDto
   ) {
     const where = await this.buildWhere(user, q);
 
     return this.prisma.timeEntry.findMany({
       where,
       orderBy: { createdAt: "desc" },
-//=======
-//  async update(id: string, dto: UpdateTimeEntryDto) {
-//    return this.prisma.timeEntry.update({
-//      where: { id },
-//      data: {
-//      ...(dto.note ? { note: dto.note } : {}),
- //     ...(dto.startDate ? { startDate: new Date(dto.startDate) } : {}),
-//      ...(dto.endDate ? { endDate: new Date(dto.endDate) } : {}),
-//      ...(dto.tasks ? { tasks: dto.tasks } : {}),
- //     // ... resto de campos opcionales
-//    },
-//>>>>>>> master
+      //=======
+      //  async update(id: string, dto: UpdateTimeEntryDto) {
+      //    return this.prisma.timeEntry.update({
+      //      where: { id },
+      //      data: {
+      //      ...(dto.note ? { note: dto.note } : {}),
+      //     ...(dto.startDate ? { startDate: new Date(dto.startDate) } : {}),
+      //      ...(dto.endDate ? { endDate: new Date(dto.endDate) } : {}),
+      //      ...(dto.tasks ? { tasks: dto.tasks } : {}),
+      //     // ... resto de campos opcionales
+      //    },
+      //>>>>>>> master
     });
   }
 

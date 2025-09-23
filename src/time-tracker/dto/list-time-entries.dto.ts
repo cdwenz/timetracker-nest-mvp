@@ -50,4 +50,7 @@ export class ListTimeEntriesDto {
 
   @IsOptional() @Transform(({ value }) => value === 'true')
   returnMeta?: boolean = true; // Por defecto true
+
+  @IsOptional() @IsUUID()
+  createdById?: string; // Filtrar por creador del registro
 }
