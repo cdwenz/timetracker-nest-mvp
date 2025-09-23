@@ -1,6 +1,6 @@
 // src/time-tracker/dto/list-time-entries.dto.ts
 import { IsOptional, IsDateString, IsInt, Min, Max, IsString, IsUUID } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class ListTimeEntriesDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0)
@@ -47,4 +47,7 @@ export class ListTimeEntriesDto {
 
   @IsOptional() @IsString()
   workingLanguage?: string;
+
+  @IsOptional() @Transform(({ value }) => value === 'true')
+  returnMeta?: boolean = true; // Por defecto true
 }

@@ -54,20 +54,20 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-    
+
     // 🆕 Obtener o crear organización por defecto
     let organization = await this.prisma.organization.findFirst({
-      where: { name: "Default Organization" }
+      where: { name: "Default Organization" },
     });
-    
+
     if (!organization) {
-      console.log('🏢 Creando organización por defecto...');
+      console.log("🏢 Creando organización por defecto...");
       organization = await this.prisma.organization.create({
-        data: { name: "Default Organization" }
+        data: { name: "Default Organization" },
       });
-      console.log('✅ Organización creada:', organization.id);
+      console.log("✅ Organización creada:", organization.id);
     }
-    
+
     const user = await this.prisma.user.create({
       data: {
         name: dto.name,
@@ -87,14 +87,14 @@ export class AuthService {
         createdAt: true,
       },
     });
-    
-    console.log('✅ Usuario registrado con organización:', {
+
+    console.log("✅ Usuario registrado con organización:", {
       userId: user.id,
       email: user.email,
-      organizationId: user.organizationId
+      organizationId: user.organizationId,
     });
-    
-    return { message: 'Usuario registrado', user };
+
+    return { message: "Usuario registrado", user };
   }
 
   async login(dto: LoginDto) {
@@ -108,7 +108,7 @@ export class AuthService {
     const payload = this.buildJwtPayload(user);
 
     const access_token = await this.jwt.signAsync(payload, {
-      expiresIn: this.config.get<string>("JWT_EXPIRES") ?? "24h",
+      expiresIn: this.config.get<string>("JWT_EXPIRES") ?? "1d",
     });
     const refreshToken = await this.jwt.signAsync(
       { sub: user.id },
@@ -130,7 +130,7 @@ export class AuthService {
         permissions: payload.permissions,
       },
     };
-  };
+  }
   // ===== Forgot/Reset password =====
 
   async requestPasswordReset(email: string) {
@@ -146,7 +146,7 @@ export class AuthService {
 
     const rawToken = randomBytes(32).toString("hex");
     const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+    const expiresAt = new Date(Date.now() + 1440 * 60 * 1000); // 24h
 
     await this.prisma.passwordResetToken.create({
       data: { userId: user.id, tokenHash, expiresAt },
@@ -192,6 +192,69 @@ export class AuthService {
     ]);
 
     return { ok: true };
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ) {
+    // Sanitizar rápido
+    const curr = (currentPassword ?? "").trim();
+    const next = (newPassword ?? "").trim();
+
+    if (!curr || !next) {
+      throw new BadRequestException("Credenciales inválidas");
+    }
+    if (next.length < 8) {
+      throw new BadRequestException(
+        "La nueva contraseña debe tener al menos 8 caracteres"
+      );
+    }
+
+    // 1) Traer usuario con su hash
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true }, // nos aseguramos de traer el hash
+    });
+    if (!user || !user.passwordHash) {
+      throw new BadRequestException("Usuario no encontrado");
+    }
+
+    // 2) Comparar la contraseña actual (plain vs hash)
+    const matches = await bcrypt.compare(curr, user.passwordHash);
+    if (!matches) {
+      // Podés usar UnauthorizedException si preferís 401
+      throw new BadRequestException("La contraseña actual no es válida");
+    }
+
+    // (Opcional) Rechazar si es igual a la actual
+    const sameAsCurrent = await bcrypt.compare(next, user.passwordHash);
+    if (sameAsCurrent) {
+      throw new BadRequestException(
+        "La nueva contraseña no puede ser igual a la actual"
+      );
+    }
+
+    // (Opcional) Política mínima de seguridad
+    // if (!/[A-Z]/.test(next) || !/[0-9]/.test(next)) {
+    //   throw new BadRequestException('Usá al menos una mayúscula y un número');
+    // }
+
+    // 3) Hashear nueva contraseña
+    const saltRounds = 10; // o leé de config/env
+    const newHash = await bcrypt.hash(next, saltRounds);
+
+    // 4) Actualizar y (opcional) invalidar refresh tokens
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash: newHash,
+        // tokenVersion: { increment: 1 }, // si manejás invalidación de sesiones
+      },
+    });
+
+    return { ok: true, message: "Contraseña actualizada correctamente" };
   }
 
   // ===== Get USER =====
