@@ -15,6 +15,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { RegionsModule } from './regions/regions.module';
 import { TeamsModule } from './teams/teams.module';
 import { TimeTrackerModule } from './time-tracker/time-tracker.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { TimeTrackerModule } from './time-tracker/time-tracker.module';
     OrganizationsModule,
     RegionsModule,
     TeamsModule,
-    TimeTrackerModule
+    TimeTrackerModule,
+    ReportsModule
   ],
   providers: [
     // Orden IMPORTA:

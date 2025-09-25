@@ -28,15 +28,15 @@ export class AuthService {
     const role: Role = (user.role as Role) ?? Role.FIELD_TECH;
     const permissions = permissionsForRole(role);
 
-    // Opcional: adjuntar alcance si ya lo tenés (orgId, regiones, teams)
+    // Incluir información organizacional y de alcance
     return {
       sub: user.id,
       email: user.email,
       role,
       permissions,
       organizationId: user.organizationId ?? null,
-      regions: user.regions?.map((r: any) => r.id) ?? [],
-      teams: user.teams?.map((t: any) => t.id) ?? [],
+      regions: user.managesRegions?.map((r: any) => r.id) ?? [],
+      teams: user.managesTeams?.map((t: any) => t.id) ?? [],
     };
   }
 
@@ -100,6 +100,11 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
+      include: {
+        organization: true,
+        managesRegions: true,
+        managesTeams: true,
+      },
     });
     if (!user) throw new UnauthorizedException("Invalid credentials");
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
