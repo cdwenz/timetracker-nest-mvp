@@ -23,7 +23,8 @@ async function main() {
   const passwordHash = await bcrypt.hash("demo123", 10);
 
   // Create users including jose_tejada@wycliffeassociates.org as ADMIN
-  const [superU, admin, joseAdmin, regional1, regional2, fm1, fm2, ft1, ft2, tr1, tr2] = await Promise.all([
+  // Create users including cristian_wenz@wycliffeassociates.org as ADMIN
+  const [superU, admin, joseAdmin, cristianAdmin, regional1, regional2, fm1, fm2, ft1, ft2, tr1, tr2] = await Promise.all([
     db.user.create({
       data: {
         name: "Super Administrator",
@@ -52,6 +53,16 @@ async function main() {
         passwordHash,
         role: Role.ADMIN,
         country: "HN",
+        organizationId: org.id,
+      },
+    }),
+    db.user.create({
+      data: {
+        name: "Cristian Wenz",
+        email: "cristian_wenz@wycliffeassociates.org",
+        passwordHash,
+        role: Role.ADMIN,
+        country: "AR",
         organizationId: org.id,
       },
     }),
@@ -139,6 +150,7 @@ async function main() {
 
   console.log("👥 Users created successfully");
   console.log("✅ jose_tejada@wycliffeassociates.org created as ADMIN");
+  console.log("✅ cristian_wenz@wycliffeassociates.org created as ADMIN");
 
   // Create regions
   const regionNorth = await db.region.create({
@@ -196,7 +208,7 @@ async function main() {
 
   // Create comprehensive time entries for testing reports
   const timeEntries = [];
-  const countries = ["HN", "GT", "NI", "MX", "BR"];
+  const countries = ["HN", "GT", "NI", "MX", "BR", "AR"];
   const languages = ["miq", "cab", "spa", "por", "eng"];
   const tasks = ["MAST", "BTT Support", "Training", "Technical Support", "Transcribe"];
   const users = [fm1, fm2, ft1, ft2, tr1, tr2];
@@ -281,6 +293,45 @@ async function main() {
         recipient: "System Users",
         personName: "IT Team",
         supportedCountry: "HN",
+        workingLanguage: "eng",
+        startDate: new Date(),
+        endDate: new Date(),
+        startTimeOfDay: "14:00",
+        endTimeOfDay: "17:00",
+        tasks: ["Technical Support"],
+        taskDescription: "Updated user roles and permissions across the system",
+        organizationId: org.id,
+        regionId: regionSouth.id,
+        teamId: teamBeta.id,
+      },
+    ]
+  });
+  // Create some additional specific entries for Cristian Wenz (ADMIN) to test
+  await db.timeEntry.createMany({
+    data: [
+      {
+        userId: cristianAdmin.id,
+        note: "Administrative review of regional reports",
+        recipient: "Regional Managers",
+        personName: "Regional Team",
+        supportedCountry: "AR",
+        workingLanguage: "spa",
+        startDate: new Date(today.getTime() - 24 * 60 * 60 * 1000), // Yesterday
+        endDate: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+        startTimeOfDay: "09:00",
+        endTimeOfDay: "12:00",
+        tasks: ["Training", "Technical Support"],
+        taskDescription: "Reviewed and analyzed regional performance metrics",
+        organizationId: org.id,
+        regionId: regionNorth.id,
+        teamId: teamAlpha.id,
+      },
+      {
+        userId: cristianAdmin.id,
+        note: "System administration and user management",
+        recipient: "System Users",
+        personName: "IT Team",
+        supportedCountry: "AR",
         workingLanguage: "eng",
         startDate: new Date(),
         endDate: new Date(),

@@ -20,7 +20,7 @@ export class EmailService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'TimeTracker <no-reply@your-domain>',
+        from: 'TimeTracker <no-reply@wycliffeassociates.org>',
         to: email,
         subject: 'Restablecer contraseña',
         html: `<p>Para restablecer tu contraseña hacé clic <a href="${link}">aquí</a>. Este enlace vence en 15 minutos.</p>`,

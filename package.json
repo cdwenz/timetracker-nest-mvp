@@ -6,6 +6,7 @@
     "build": "nest build",
     "start": "node dist/src/main.js",
     "start:dev": "nest start --watch",
+    "seed": "ts-node prisma/seed.ts",
     "format": "prettier --write 'src/**/*.ts'",
     "lint": "eslint '{src,apps,libs,test}/**/*.ts' --fix",
     "prisma:generate": "prisma generate",
