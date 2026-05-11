@@ -4,7 +4,7 @@
   "description": "TimeTracker MVP API (NestJS + Prisma + PostgreSQL)",
   "scripts": {
     "build": "nest build",
-    "start": "npx prisma migrate deploy && npx prisma db seed && node dist/src/main.js",
+    "start": "node dist/src/main.js",
     "start:dev": "nest start --watch",
     "seed": "ts-node prisma/seed.ts",
     "format": "prettier --write 'src/**/*.ts'",

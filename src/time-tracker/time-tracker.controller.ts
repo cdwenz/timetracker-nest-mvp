@@ -2,10 +2,10 @@ import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get,
 import { CreateTimeEntryDto } from "./dto/create-time-entry.dto";
 import { TimeTrackerService } from "./time-tracker.service";
 import { ListTimeEntriesDto } from "./dto/list-time-entries.dto";
-import { PrismaService } from "src/prisma/prisma.service";
 import { normalizeListQuery } from "./utils/query-normalizer";
 import { RequirePerms } from "src/auth/decorators/perms.decorator";
 import { UpdateTimeEntryDto } from "./dto/update-time-entry.dto";
+import { PrismaService } from "src/prisma/prisma.service";
 
 @Controller("time-tracker")
 export class TimeTrackerController {
@@ -52,6 +52,8 @@ export class TimeTrackerController {
       role: req.user?.role,
       organizationId: req.user?.organizationId
     };
+
+    console.log("GET TIME: ", user)
     
     if (query.returnMeta === false) {
       const response = await this.service.listFlat(user, query);

@@ -5,18 +5,24 @@ const db = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting database seed...");
-  
-  // Clear existing data
-  await db.timeEntry.deleteMany();
-  await db.teamMember.deleteMany();
-  await db.team.deleteMany();
-  await db.region.deleteMany();
-  await db.user.deleteMany();
-  await db.organization.deleteMany();
-  
-  console.log("🗑️ Existing data cleared");
 
-  const org = await db.organization.create({ data: { name: "Wycliffe Associates" } });
+  // Clear existing data
+  // await db.timeEntry.deleteMany();
+  // await db.teamMember.deleteMany();
+  // await db.team.deleteMany();
+  // await db.region.deleteMany();
+  // await db.user.deleteMany();
+  // await db.organization.deleteMany();
+
+  // console.log("🗑️ Existing data cleared");
+
+  const org = await db.organization.upsert({
+    where: { name: 'Wycliffe Associates' },
+    update: {},
+    create: {
+      name: 'Wycliffe Associates',
+    }
+  });
   console.log("🏢 Organization created:", org.name);
 
   // Create a proper hash for demo password (password: "demo123")
@@ -25,8 +31,10 @@ async function main() {
   // Create users including jose_tejada@wycliffeassociates.org as ADMIN
   // Create users including cristian_wenz@wycliffeassociates.org as ADMIN
   const [superU, admin, joseAdmin, cristianAdmin, regional1, regional2, fm1, fm2, ft1, ft2, tr1, tr2] = await Promise.all([
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "super@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Super Administrator",
         email: "super@wycliffeassociates.org",
         passwordHash,
@@ -35,8 +43,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "admin@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "System Admin",
         email: "admin@wycliffeassociates.org",
         passwordHash,
@@ -46,8 +56,10 @@ async function main() {
       },
     }),
     // Jose Tejada as ADMIN as requested
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "jose_tejada@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "José Tejada",
         email: "jose_tejada@wycliffeassociates.org",
         passwordHash,
@@ -56,8 +68,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "cristian_wenz@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Cristian Wenz",
         email: "cristian_wenz@wycliffeassociates.org",
         passwordHash,
@@ -66,8 +80,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "regional.north@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Regional Manager North",
         email: "regional.north@wycliffeassociates.org",
         passwordHash,
@@ -76,8 +92,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "regional.south@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Regional Manager South",
         email: "regional.south@wycliffeassociates.org",
         passwordHash,
@@ -86,8 +104,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "fm.alpha@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Field Manager Alpha",
         email: "fm.alpha@wycliffeassociates.org",
         passwordHash,
@@ -96,8 +116,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "fm.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Field Manager Beta",
         email: "fm.beta@wycliffeassociates.org",
         passwordHash,
@@ -106,8 +128,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "ft.one@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Field Tech One",
         email: "ft.one@wycliffeassociates.org",
         passwordHash,
@@ -116,8 +140,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "ft.two@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Field Tech Two",
         email: "ft.two@wycliffeassociates.org",
         passwordHash,
@@ -126,8 +152,10 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "tr.alpha@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Transcriber Alpha",
         email: "tr.alpha@wycliffeassociates.org",
         passwordHash,
@@ -136,8 +164,166 @@ async function main() {
         organizationId: org.id,
       },
     }),
-    db.user.create({
-      data: {
+    db.user.upsert({
+      where: { email: "tr.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Transcriber Beta",
+        email: "tr.beta@wycliffeassociates.org",
+        passwordHash,
+        role: Role.TRANSCRIBER,
+        country: "GT",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "regional.south@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Regional Manager South",
+        email: "regional.south@wycliffeassociates.org",
+        passwordHash,
+        role: Role.REGIONAL_MANAGER,
+        country: "BR",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "fm.alpha@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Manager Alpha",
+        email: "fm.alpha@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_MANAGER,
+        country: "HN",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "fm.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Manager Beta",
+        email: "fm.beta@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_MANAGER,
+        country: "GT",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "ft.one@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Tech One",
+        email: "ft.one@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_TECH,
+        country: "HN",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "ft.two@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Tech Two",
+        email: "ft.two@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_TECH,
+        country: "NI",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "tr.alpha@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Transcriber Alpha",
+        email: "tr.alpha@wycliffeassociates.org",
+        passwordHash,
+        role: Role.TRANSCRIBER,
+        country: "HN",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "tr.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Transcriber Beta",
+        email: "tr.beta@wycliffeassociates.org",
+        passwordHash,
+        role: Role.TRANSCRIBER,
+        country: "GT",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "fm.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Manager Beta",
+        email: "fm.beta@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_MANAGER,
+        country: "GT",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "ft.one@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Tech One",
+        email: "ft.one@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_TECH,
+        country: "HN",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "ft.two@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Field Tech Two",
+        email: "ft.two@wycliffeassociates.org",
+        passwordHash,
+        role: Role.FIELD_TECH,
+        country: "NI",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "tr.alpha@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Transcriber Alpha",
+        email: "tr.alpha@wycliffeassociates.org",
+        passwordHash,
+        role: Role.TRANSCRIBER,
+        country: "HN",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "tr.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
+        name: "Transcriber Beta",
+        email: "tr.beta@wycliffeassociates.org",
+        passwordHash,
+        role: Role.TRANSCRIBER,
+        country: "GT",
+        organizationId: org.id,
+      },
+    }),
+    db.user.upsert({
+      where: { email: "tr.beta@wycliffeassociates.org" },
+      update: {},
+      create: {
         name: "Transcriber Beta",
         email: "tr.beta@wycliffeassociates.org",
         passwordHash,
@@ -154,18 +340,18 @@ async function main() {
 
   // Create regions
   const regionNorth = await db.region.create({
-    data: { 
-      name: "Central America North", 
-      organizationId: org.id, 
-      managerId: regional1.id 
+    data: {
+      name: "Central America North",
+      organizationId: org.id,
+      managerId: regional1.id
     },
   });
-  
+
   const regionSouth = await db.region.create({
-    data: { 
-      name: "Central America South", 
-      organizationId: org.id, 
-      managerId: regional2.id 
+    data: {
+      name: "Central America South",
+      organizationId: org.id,
+      managerId: regional2.id
     },
   });
 
@@ -180,7 +366,7 @@ async function main() {
       managerId: fm1.id,
     },
   });
-  
+
   const teamBeta = await db.team.create({
     data: {
       name: "Garifuna Translation Team",
@@ -212,32 +398,32 @@ async function main() {
   const languages = ["miq", "cab", "spa", "por", "eng"];
   const tasks = ["MAST", "BTT Support", "Training", "Technical Support", "Transcribe"];
   const users = [fm1, fm2, ft1, ft2, tr1, tr2];
-  
+
   // Generate time entries for the last 60 days
   const today = new Date();
-  
+
   for (let i = 0; i < 60; i++) {
     const entryDate = new Date(today);
     entryDate.setDate(today.getDate() - i);
-    
+
     // Create 2-5 entries per day
     const entriesPerDay = Math.floor(Math.random() * 4) + 2;
-    
+
     for (let j = 0; j < entriesPerDay; j++) {
       const user = users[Math.floor(Math.random() * users.length)];
       const country = countries[Math.floor(Math.random() * countries.length)];
       const language = languages[Math.floor(Math.random() * languages.length)];
       const task = tasks[Math.floor(Math.random() * tasks.length)];
-      
+
       // Get user's team info
       const userTeam = user.id === fm1.id || user.id === ft1.id || user.id === tr1.id ? teamAlpha : teamBeta;
       const userRegion = userTeam.id === teamAlpha.id ? regionNorth : regionSouth;
-      
+
       // Random start and end times
       const startHour = Math.floor(Math.random() * 8) + 8; // 8 AM - 3 PM
       const duration = Math.floor(Math.random() * 4) + 1; // 1-4 hours
       const endHour = Math.min(startHour + duration, 17); // Not later than 5 PM
-      
+
       timeEntries.push({
         userId: user.id,
         note: `${task} work on ${language} translation for ${country}`,
