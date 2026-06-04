@@ -54,6 +54,7 @@ export class TimeTrackerController {
     };
 
     console.log("GET TIME: ", user)
+    console.log("Query: ", query)
     
     if (query.returnMeta === false) {
       const response = await this.service.listFlat(user, query);
