@@ -209,11 +209,19 @@ export class TimeTrackerService {
 
     // Rango por startDate
     if (q.fromDate || q.toDate) {
-      where.startDate = {};
-      if (q.fromDate)
-        (where.startDate as Prisma.DateTimeFilter).gte = new Date(q.fromDate);
-      if (q.toDate)
-        (where.startDate as Prisma.DateTimeFilter).lte = new Date(q.toDate);
+      const dateFilter: Prisma.DateTimeFilter = {};
+
+      if (q.fromDate) {
+        dateFilter.gte = new Date(q.fromDate);
+      }
+
+      if (q.toDate) {
+        const endDate = new Date(q.toDate);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter.lte = endDate;
+      }
+
+      where.startDate = dateFilter;
     }
 
     // Filtros simples por campo
@@ -281,16 +289,13 @@ export class TimeTrackerService {
 
     const [count, items] = await Promise.all([
       this.prisma.timeEntry.count({ where }),
-      //=======
-      // const [items, count] = await this.prisma.$transaction([
-      //>>>>>>> master
+
       this.prisma.timeEntry.findMany({
         where,
         skip,
         take,
         orderBy: { startDate: "desc" },
       }),
-      this.prisma.timeEntry.count({ where }),
     ]);
 
     return {
