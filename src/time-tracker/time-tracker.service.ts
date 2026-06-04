@@ -78,7 +78,6 @@ export class TimeTrackerService {
     });
   }
 
-  //<<<<<<< development
   private async buildWhere(
     user: { userId: string; role: string; organizationId?: string },
     q: ListTimeEntriesDto
@@ -87,52 +86,124 @@ export class TimeTrackerService {
 
     // Lógica de visibilidad corregida por rol
     if (user.role === "ADMIN") {
-      // ADMIN puede ver todo o filtrar por usuario específico
-      if (q.createdById) where.userId = q.createdById;
-    } else if (user.role === "FIELD_MANAGER") {
-      // FIELD_MANAGER puede ver registros de su equipo
+      if (q.createdById) {
+        where.userId = q.createdById;
+      }
+    }
+    else if (user.role === "REGIONAL_MANAGER") {
       if (q.myTeam === true) {
-        // Opción 1: Mostrar registros de equipos donde es miembro
-        const userTeams = await this.prisma.teamMember.findMany({
-          where: { userId: user.userId },
-          select: { teamId: true },
+        const regions = await this.prisma.region.findMany({
+          where: {
+            managerId: user.userId,
+          },
+          select: {
+            id: true,
+          },
         });
 
-        const teamIds = userTeams.map((tm) => tm.teamId);
+        const regionIds = regions.map((r) => r.id);
 
-        if (teamIds.length > 0) {
-          where.OR = [
-            { userId: user.userId }, // Mis propios registros
-            { teamId: { in: teamIds } }, // Registros de mis equipos
-          ];
-        } else {
-          // No pertenezco a ningún equipo, solo mis registros
-          where.userId = user.userId;
-        }
+        where.OR = [
+          {
+            userId: user.userId,
+          },
+          {
+            regionId: {
+              in: regionIds,
+            },
+          },
+        ];
       } else {
-        // Solo mis registros personales
         where.userId = user.userId;
       }
-    } else {
-      // USER solo ve sus propios registros
+    }
+
+    else if (user.role === "FIELD_MANAGER") {
+      if (q.myTeam === true) {
+        const teams = await this.prisma.team.findMany({
+          where: {
+            managerId: user.userId,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const teamIds = teams.map((t) => t.id);
+
+        where.OR = [
+          {
+            userId: user.userId,
+          },
+          {
+            teamId: {
+              in: teamIds,
+            },
+          },
+        ];
+      } else {
+        where.userId = user.userId;
+      }
+    }
+
+    else if (
+      user.role === "FIELD_TECH" ||
+      user.role === "TRANSCRIBER"
+    ) {
       where.userId = user.userId;
     }
 
     // Filtro por equipo específico
     if (q.teamId) {
-      // Verificar que el usuario tenga acceso a este equipo
       if (user.role === "ADMIN") {
         where.teamId = q.teamId;
-      } else {
-        const isMember = await this.prisma.teamMember.findFirst({
-          where: { userId: user.userId, teamId: q.teamId },
+      }
+
+      else if (user.role === "FIELD_MANAGER") {
+        const managedTeam = await this.prisma.team.findFirst({
+          where: {
+            id: q.teamId,
+            managerId: user.userId,
+          },
         });
 
-        if (isMember) {
-          where.teamId = q.teamId;
-        } else {
+        if (!managedTeam) {
           throw new Error("No tienes acceso a este equipo");
         }
+
+        where.teamId = q.teamId;
+      }
+
+      else if (user.role === "REGIONAL_MANAGER") {
+        const team = await this.prisma.team.findFirst({
+          where: {
+            id: q.teamId,
+            region: {
+              managerId: user.userId,
+            },
+          },
+        });
+
+        if (!team) {
+          throw new Error("No tienes acceso a este equipo");
+        }
+
+        where.teamId = q.teamId;
+      }
+
+      else {
+        const membership = await this.prisma.teamMember.findFirst({
+          where: {
+            userId: user.userId,
+            teamId: q.teamId,
+          },
+        });
+
+        if (!membership) {
+          throw new Error("No tienes acceso a este equipo");
+        }
+
+        where.teamId = q.teamId;
       }
     }
 
@@ -143,37 +214,9 @@ export class TimeTrackerService {
         (where.startDate as Prisma.DateTimeFilter).gte = new Date(q.fromDate);
       if (q.toDate)
         (where.startDate as Prisma.DateTimeFilter).lte = new Date(q.toDate);
-      //======
-      //async list(args: ListArgs) {
-      //   const {
-      //     role, orgId, currentUserId, skip, take,
-      //     dateFrom, dateTo, userId, search, supportedCountry, workingLanguage
-      //   } = args;
-      //
-      //   // Construimos filtros en AND explícito
-      //   const AND: any[] = [];
-      //
-      //   // Alcance por rol
-      //  if (role === 'SUPER' || role === 'ADMIN') {
-      //    if (orgId) AND.push({ organizationId: orgId });
-      //     if (userId) AND.push({ userId });
-      //    } else {
-      //      AND.push({ userId: currentUserId });
-      //      if (orgId) AND.push({ organizationId: orgId });
-      //    }
-      //
-      //    // Rango de fechas sobre startDate
-      //    if (dateFrom || dateTo) {
-      //      const dateCond: any = {};
-      //      if (dateFrom) dateCond.gte = dateFrom;
-      //      if (dateTo)   dateCond.lte = dateTo; // ya es fin de día
-      //      AND.push({ startDate: dateCond });
-      //>>>>>>> master
     }
 
     // Filtros simples por campo
-
-
     const AND: any[] = [];
     if (q.supportedCountry) AND.push({ supportedCountry: q.supportedCountry });
     if (q.workingLanguage) AND.push({ workingLanguage: q.workingLanguage });
@@ -191,7 +234,6 @@ export class TimeTrackerService {
       where.AND = where.AND ?? [];
     }
 
-    //<<<<<<< development
     return where;
   }
 
