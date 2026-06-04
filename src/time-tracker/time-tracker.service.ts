@@ -20,27 +20,60 @@ type ListArgs = {
 
 @Injectable()
 export class TimeTrackerService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, orgId: string, dto: CreateTimeEntryDto) {
+    const membership = await this.prisma.teamMember.findFirst({
+      where: {
+        userId,
+      },
+      include: {
+        team: true,
+      },
+    });
+
+    console.log("USER:", userId);
+    console.log("MEMBERSHIP:", membership);
+    console.log("TEAM:", membership?.teamId);
+    console.log("REGION:", membership?.team?.regionId);
+
     return this.prisma.timeEntry.create({
       data: {
-        // Relaciones obligatorias
-        user: { connect: { id: userId } },
-        organization: { connect: { id: orgId } },
+        user: {
+          connect: { id: userId },
+        },
 
-        // Escalares
+        organization: {
+          connect: { id: orgId },
+        },
+
+        ...(membership?.teamId && {
+          team: {
+            connect: {
+              id: membership.teamId,
+            },
+          },
+        }),
+
+        ...(membership?.team?.regionId && {
+          region: {
+            connect: {
+              id: membership.team.regionId,
+            },
+          },
+        }),
+
         note: dto.note,
         recipient: dto.recipient,
         personName: dto.personName,
         supportedCountry: dto.supportedCountry,
         workingLanguage: dto.workingLanguage,
-        startDate: new Date(dto.startDate), // dto viene string ISO → Date
+        startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         startTimeOfDay: dto.startTimeOfDay,
         endTimeOfDay: dto.endTimeOfDay,
         taskDescription: dto.taskDescription,
-        tasks: dto.tasks ?? [], // String[]
+        tasks: dto.tasks ?? [],
       },
     });
   }
@@ -140,7 +173,7 @@ export class TimeTrackerService {
 
     // Filtros simples por campo
 
-    
+
     const AND: any[] = [];
     if (q.supportedCountry) AND.push({ supportedCountry: q.supportedCountry });
     if (q.workingLanguage) AND.push({ workingLanguage: q.workingLanguage });
