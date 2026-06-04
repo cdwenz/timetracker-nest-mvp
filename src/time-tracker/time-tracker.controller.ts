@@ -56,11 +56,10 @@ export class TimeTrackerController {
     console.log("GET TIME: ", user)
     console.log("Query: ", query)
     
-    if (query.returnMeta === false) {
-      const response = await this.service.listFlat(user, query);
-      // console.log("Res-Flat: ", response);
-      return response;
-    }
+    // if (query.returnMeta === false) {
+    //   const response = await this.service.listFlat(user, query);
+    //   return response;
+    // }
     const response = await this.service.listWithMeta(user, query);
     // console.log("Res-Meta: ", response);
     return response;
