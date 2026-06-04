@@ -217,22 +217,53 @@ export class TimeTrackerService {
     }
 
     // Filtros simples por campo
-    const AND: any[] = [];
-    if (q.supportedCountry) AND.push({ supportedCountry: q.supportedCountry });
-    if (q.workingLanguage) AND.push({ workingLanguage: q.workingLanguage });
+    const AND: Prisma.TimeEntryWhereInput[] = [];
 
-    // Búsqueda (OR) combinada con AND
-    where.AND = AND.length ? { AND } : {};
+    if (q.supportedCountry) {
+      AND.push({
+        supportedCountry: q.supportedCountry,
+      });
+    }
+
+    if (q.workingLanguage) {
+      AND.push({
+        workingLanguage: q.workingLanguage,
+      });
+    }
+
     if (q.search) {
       AND.push({
         OR: [
-          { note: { contains: q.search, mode: "insensitive" } },
-          { recipient: { contains: q.search, mode: "insensitive" } },
-          { personName: { contains: q.search, mode: "insensitive" } },
+          {
+            note: {
+              contains: q.search,
+              mode: "insensitive",
+            },
+          },
+          {
+            recipient: {
+              contains: q.search,
+              mode: "insensitive",
+            },
+          },
+          {
+            personName: {
+              contains: q.search,
+              mode: "insensitive",
+            },
+          },
         ],
       });
-      where.AND = where.AND ?? [];
     }
+
+    if (AND.length > 0) {
+      where.AND = AND;
+    }
+
+    console.log(
+      "TIME ENTRY WHERE:",
+      JSON.stringify(where, null, 2)
+    );
 
     return where;
   }
@@ -274,7 +305,6 @@ export class TimeTrackerService {
     return this.prisma.timeEntry.findUnique({ where: { id } });
   }
 
-  //<<<<<<< development
   // Opción simple sin meta si querés
   async listFlat(
     user: { userId: string; role: string; organizationId?: string },
@@ -285,18 +315,6 @@ export class TimeTrackerService {
     return this.prisma.timeEntry.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      //=======
-      //  async update(id: string, dto: UpdateTimeEntryDto) {
-      //    return this.prisma.timeEntry.update({
-      //      where: { id },
-      //      data: {
-      //      ...(dto.note ? { note: dto.note } : {}),
-      //     ...(dto.startDate ? { startDate: new Date(dto.startDate) } : {}),
-      //      ...(dto.endDate ? { endDate: new Date(dto.endDate) } : {}),
-      //      ...(dto.tasks ? { tasks: dto.tasks } : {}),
-      //     // ... resto de campos opcionales
-      //    },
-      //>>>>>>> master
     });
   }
 

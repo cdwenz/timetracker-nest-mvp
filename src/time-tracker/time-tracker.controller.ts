@@ -52,9 +52,6 @@ export class TimeTrackerController {
       role: req.user?.role,
       organizationId: req.user?.organizationId
     };
-
-    console.log("GET TIME: ", user)
-    console.log("Query: ", query)
     
     if (query.returnMeta === false) {
       const response = await this.service.listFlat(user, query);
